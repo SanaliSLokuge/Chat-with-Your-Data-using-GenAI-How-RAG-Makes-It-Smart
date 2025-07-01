@@ -1,9 +1,7 @@
 import streamlit as st
 import pandas as pd
-import faiss
 import numpy as np
 import openai
-import requests
 
 # --- API Setup ---
 openai.api_key = "sk-or-v1-e320933bc3a373f7eeeeea668e6aa58918292170625f7d372453b6a1a0330176Y"
