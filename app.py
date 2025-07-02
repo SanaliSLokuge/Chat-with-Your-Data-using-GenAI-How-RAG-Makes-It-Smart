@@ -11,7 +11,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 st.set_page_config(page_title="AI-Powered File Q&A", layout="wide")
 
 # --- Constants ---
-API_KEY = st.secrets["openrouter"]["api_key"]
+API_KEY = st.secrets["api_key"]
 MODEL = "openai/gpt-4o-mini"
 
 # --- Helper Functions ---
