@@ -49,7 +49,7 @@ def retrieve_context(question, chunks, vectorizer, doc_vectors, top_k=3):
 
 def ask_openrouter(context_chunks, question):
     context = "\n".join(context_chunks)
-    prompt = f"""You are a helpful data analyst. Use ONLY the data below to answer the question.
+    prompt = f"""You are a helpful data analyst. Use ONLY the data below to answer the question.Also, you should give point form answers and go deep into why, how , when.
 Data:
 {context}
 
