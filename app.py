@@ -67,7 +67,7 @@ Answer:"""
             {"role": "system", "content": "You are a helpful data analyst."},
             {"role": "user", "content": prompt}
         ],
-        "max_tokens": 300,
+        "max_tokens": 2000,
         "temperature": 0.2,
         "top_p": 1
     }
