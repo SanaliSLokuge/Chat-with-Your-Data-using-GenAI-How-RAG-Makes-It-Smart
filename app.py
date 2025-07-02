@@ -1,76 +1,105 @@
-import streamlit as st
+# 📚 Imports
 import pandas as pd
-import numpy as np
-import openai
-
-# --- API Setup ---
-openai.api_key = "sk-or-v1-e320933bc3a373f7eeeeea668e6aa58918292170625f7d372453b6a1a0330176Y"
-openai.api_base = "https://openrouter.ai/api/v1"
-
-MODEL = "google/gemma-7b-it"  # You can change to any supported OpenRouter model
-
-# --- Embedding with OpenRouter (Optional) ---
-# We'll simulate embedding via TF-IDF instead, since OpenRouter doesn't expose embeddings for all models
-
-# --- Vector Store Using TF-IDF ---
+import docx
+import PyPDF2
+import requests
+import streamlit as st
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-class TFIDFStore:
-    def __init__(self, texts):
-        self.texts = texts
-        self.vectorizer = TfidfVectorizer()
-        self.vectors = self.vectorizer.fit_transform(texts)
+# --- Config ---
+st.set_page_config(page_title="AI-Powered File Q&A", layout="wide")
 
-    def query(self, question, top_k=3):
-        q_vec = self.vectorizer.transform([question])
-        scores = cosine_similarity(q_vec, self.vectors).flatten()
-        top_indices = scores.argsort()[::-1][:top_k]
-        return [self.texts[i] for i in top_indices]
+# --- Constants ---
+API_KEY = "sk-or-..."  # Replace with your OpenRouter API key
+MODEL = "openai/gpt-4o-mini"
 
-# --- Streamlit App ---
-st.set_page_config(page_title="Chat with Your Data (OpenRouter)", layout="wide")
-st.title("🔍 Chat with Your Data using OpenRouter + RAG (Simulated)")
+# --- Helper Functions ---
+def chunk_text_by_words(text, chunk_size=100):
+    words = text.split()
+    return [
+        " ".join(words[i:i + chunk_size])
+        for i in range(0, len(words), chunk_size)
+        if len(words[i:i + chunk_size]) > 10
+    ]
 
-uploaded_file = st.file_uploader("📤 Upload a CSV file", type="csv")
+def extract_text_from_file(uploaded_file):
+    name = uploaded_file.name
+    if name.endswith(".csv"):
+        df = pd.read_csv(uploaded_file)
+        st.dataframe(df.head())
+        return df.astype(str).apply(lambda row: " | ".join(row), axis=1).tolist()
+    elif name.endswith(".pdf"):
+        reader = PyPDF2.PdfReader(uploaded_file)
+        text = "\n".join([p.extract_text() for p in reader.pages if p.extract_text()])
+        return chunk_text_by_words(text)
+    elif name.endswith(".docx"):
+        doc = docx.Document(uploaded_file)
+        text = "\n".join([p.text for p in doc.paragraphs])
+        return chunk_text_by_words(text)
+    else:
+        st.error("❌ Unsupported file type.")
+        return []
+
+def retrieve_context(question, chunks, vectorizer, doc_vectors, top_k=3):
+    q_vec = vectorizer.transform([question])
+    scores = cosine_similarity(q_vec, doc_vectors).flatten()
+    indices = scores.argsort()[::-1][:top_k]
+    return [chunks[i] for i in indices]
+
+def ask_openrouter(context_chunks, question):
+    context = "\n".join(context_chunks)
+    prompt = f"""You are a helpful data analyst. Use ONLY the data below to answer the question.
+Data:
+{context}
+
+Question: {question}
+Answer:"""
+
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    }
+    json_data = {
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": "You are a helpful data analyst."},
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 300,
+        "temperature": 0.2,
+        "top_p": 1
+    }
+
+    response = requests.post(url, headers=headers, json=json_data)
+    response.raise_for_status()
+    return response.json()['choices'][0]['message']['content']
+
+# --- UI ---
+st.title("📄 AI-Powered Document Q&A")
+uploaded_file = st.file_uploader("Upload a CSV, PDF, or DOCX file", type=["csv", "pdf", "docx"])
+
 if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    st.write("📄 Preview:", df.head())
+    st.success(f"Uploaded: {uploaded_file.name}")
+    with st.spinner("🔍 Extracting and indexing..."):
+        text_chunks = extract_text_from_file(uploaded_file)
+        if text_chunks:
+            vectorizer = TfidfVectorizer()
+            doc_vectors = vectorizer.fit_transform(text_chunks)
+            st.success(f"✅ {len(text_chunks)} text chunks indexed.")
 
-    # Chunk the data
-    text_chunks = df.astype(str).apply(lambda row: " | ".join(row), axis=1).tolist()
-    store = TFIDFStore(text_chunks)
-    st.success("✅ Data loaded and indexed.")
+            question = st.text_input("Ask a question about your file:")
+            if question:
+                matched_chunks = retrieve_context(question, text_chunks, vectorizer, doc_vectors)
+                with st.expander("🔎 Top matching chunks"):
+                    for i, chunk in enumerate(matched_chunks, 1):
+                        st.markdown(f"**Chunk {i}:** {chunk[:500]}...")
 
-    question = st.text_input("💬 Ask a question about your data:")
-    if question:
-        matches = store.query(question)
-        context = "\n".join(matches)
-
-        # Prompt Template
-        prompt = f"""You are a data assistant. Use only the data below to answer the user's question.
-
-        Data:
-        {context}
-
-        Question: {question}
-        Answer:"""
-
-        # OpenRouter call
-        try:
-            response = openai.ChatCompletion.create(
-                model=MODEL,
-                messages=[
-                    {"role": "system", "content": "You are a helpful data analyst."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            answer = response["choices"][0]["message"]["content"]
-            st.markdown("### 🤖 Answer:")
-            st.write(answer)
-
-            with st.expander("🔍 Retrieved Context Chunks"):
-                for i, chunk in enumerate(matches):
-                    st.markdown(f"**Chunk {i+1}:** {chunk}")
-        except Exception as e:
-            st.error(f"OpenRouter Error: {e}")
+                with st.spinner("🤖 Generating answer..."):
+                    try:
+                        answer = ask_openrouter(matched_chunks, question)
+                        st.success("✅ Answer:")
+                        st.markdown(answer)
+                    except Exception as e:
+                        st.error(f"API Error: {e}")
