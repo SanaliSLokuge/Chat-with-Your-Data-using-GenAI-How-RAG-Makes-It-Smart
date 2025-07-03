@@ -21,7 +21,7 @@ Welcome to the **AI-Powered Document Q&A** interactive blog!
 In this hands-on walkthrough, you’ll learn how to:
 
 - Extract text from PDF, Word, and CSV files  
-- Build a basic search index with **TF-IDF**  
+- Build a basic search index 
 - Use **LLMs (like GPT-4o-mini)** to answer questions based on your files  
 
 Follow along and upload your own document to try it live.
@@ -84,7 +84,7 @@ Answer:"""
     json_data = {
         "model": MODEL,
         "messages": [
-            {"role": "system", "content": "You are a helpful data analyst."},
+            {"role": "system", "content": "You are a helpful data analyst.If it is a dataset you can analyse trends and other patterns/ insights from the dataset. If it a pdf, then understand the purpose and the relatable things in the document and check the standard or how to imporve it."},
             {"role": "user", "content": prompt}
         ],
         "max_tokens": max_tokens,
