@@ -10,28 +10,42 @@ from sklearn.metrics.pairwise import cosine_similarity
 # --- Config ---
 st.set_page_config(page_title="🧠 AI-Powered Document Q&A Blog", layout="wide")
 
+# --- Style ---
+st.markdown("""
+    <style>
+        body { background-color: #f5f7fa; }
+        .title { color: #0a2f5c; font-size: 40px; font-weight: bold; }
+        .step-header { background-color: #eaf2ff; padding: 10px; border-radius: 8px; margin-top: 20px; }
+        .highlight { color: #1a73e8; font-weight: 600; }
+        .important { background-color: #fef3c7; padding: 10px; border-left: 5px solid #facc15; }
+        .chunk-box { background-color: #f0f4f8; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
+        .question-box { background-color: #e0f7fa; padding: 10px; border-radius: 6px; }
+        .answer-box { background-color: #e7f5e1; padding: 15px; border-radius: 10px; border: 1px solid #a3d977; }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- Constants ---
 API_KEY = st.secrets["api_key"]
 MODEL = "openai/gpt-4o-mini"
 
 # --- UI: Blog Intro ---
-st.title("🧠 Build Your Own AI-Powered Document Analyst")
+st.markdown('<div class="title">🧠 Build Your Own AI-Powered Document Analyst</div>', unsafe_allow_html=True)
 st.markdown("""
 Welcome to the **AI-Powered Document Q&A** interactive blog!  
 In this hands-on walkthrough, you’ll learn how to:
 
-- Extract text from PDF, Word, and CSV files  
-- Build a basic search index 
-- Use **LLMs (like GPT-4o-mini)** to answer questions based on your files  
+- 🧾 Extract text from **PDF**, **Word**, and **CSV** files  
+- 🔎 Build a search index with **TF-IDF**  
+- 🤖 Use **LLMs (like GPT-4o-mini)** to answer questions about your files  
 
-Follow along and upload your own document to try it live.
+Upload a document and start exploring!
 """)
 
 # --- Step 1: Upload File ---
-st.header("📂 Step 1: Upload Your Document")
+st.markdown('<div class="step-header"><h3>📂 Step 1: Upload Your Document</h3></div>', unsafe_allow_html=True)
 uploaded_file = st.file_uploader("Choose a CSV, PDF, or DOCX file", type=["csv", "pdf", "docx"])
 
-# --- Helper: Chunking & Parsing ---
+# --- Helper Functions ---
 def chunk_text_by_words(text, chunk_size=100):
     words = text.split()
     return [
@@ -84,7 +98,7 @@ Answer:"""
     json_data = {
         "model": MODEL,
         "messages": [
-            {"role": "system", "content": "You are a helpful data analyst.If it is a dataset you can analyse trends and other patterns/ insights from the dataset. If it a pdf, then understand the purpose and the relatable things in the document and check the standard or how to imporve it."},
+            {"role": "system", "content": "You are a helpful data analyst. If it's a dataset, analyze trends and insights. If it's a document, assess purpose, gaps, and improvements."},
             {"role": "user", "content": prompt}
         ],
         "max_tokens": max_tokens,
@@ -96,27 +110,27 @@ Answer:"""
     response.raise_for_status()
     return response.json()['choices'][0]['message']['content']
 
-# --- Proceed if File is Uploaded ---
+# --- Main Execution ---
 if uploaded_file:
     st.success(f"✅ Uploaded: `{uploaded_file.name}`")
     with st.spinner("🔍 Extracting and indexing text..."):
         text_chunks = extract_text_from_file(uploaded_file)
 
     if text_chunks:
-        st.header("🧠 Step 2: Indexing with TF-IDF")
+        st.markdown('<div class="step-header"><h3>🧠 Step 2: Indexing with TF-IDF</h3></div>', unsafe_allow_html=True)
         st.markdown("""
-TF-IDF stands for *Term Frequency - Inverse Document Frequency*.  
-It’s a simple algorithm that helps us score text relevance by comparing word frequencies across your document.
+TF-IDF stands for **Term Frequency - Inverse Document Frequency**.  
+It helps identify important terms by comparing word frequency across text chunks.
 
-We’ll now create a vector representation of each chunk of text from your file.
+Creating a vector representation of your document...
 """)
         vectorizer = TfidfVectorizer()
         doc_vectors = vectorizer.fit_transform(text_chunks)
-        st.success(f"✅ {len(text_chunks)} chunks of text processed and indexed.")
+        st.success(f"✅ {len(text_chunks)} text chunks processed.")
 
-        # --- Sample Questions ---
-        st.header("💬 Step 3: Ask a Question About Your File")
-        st.markdown("Try asking a question about the content you uploaded!")
+        # Step 3: Ask Questions
+        st.markdown('<div class="step-header"><h3>💬 Step 3: Ask a Question About Your File</h3></div>', unsafe_allow_html=True)
+        st.markdown("Try asking a question about the content in your uploaded file.")
 
         sample_qs = [
             "Can I become a machine learning engineer?",
@@ -125,27 +139,25 @@ We’ll now create a vector representation of each chunk of text from your file.
         ]
         col1, col2 = st.columns([2, 1])
         with col1:
-            question = st.text_input("Type your question here:")
+            question = st.text_input("📝 Type your question here:")
         with col2:
-            selected = st.selectbox("Or pick a sample:", sample_qs)
-            if st.button("Use sample question"):
+            selected = st.selectbox("🎯 Sample questions", sample_qs)
+            if st.button("Use sample"):
                 question = selected
 
-        # --- LLM Settings ---
-        with st.expander("⚙️ Advanced Settings"):
-            temperature = st.slider("LLM Temperature (creativity)", 0.0, 1.0, 0.2)
-            max_tokens = st.slider("Max Tokens", 100, 2000, 1000)
+        with st.expander("⚙️ Advanced LLM Settings"):
+            temperature = st.slider("🎨 Temperature (creativity)", 0.0, 1.0, 0.2)
+            max_tokens = st.slider("🧾 Max tokens", 100, 2000, 1000)
 
         if question:
             matched_chunks = retrieve_context(question, text_chunks, vectorizer, doc_vectors)
             with st.expander("🔍 Top Matching Chunks"):
                 for i, chunk in enumerate(matched_chunks, 1):
-                    st.markdown(f"**Chunk {i}:** {chunk[:400]}...")
+                    st.markdown(f'<div class="chunk-box"><b>Chunk {i}:</b> {chunk[:400]}...</div>', unsafe_allow_html=True)
 
-            with st.spinner("🤖 Asking the AI..."):
+            with st.spinner("🤖 Querying the AI..."):
                 try:
                     answer = ask_openrouter(matched_chunks, question, temperature, max_tokens)
-                    st.success("✅ Answer Generated:")
-                    st.markdown(answer)
+                    st.markdown('<div class="answer-box"><b>✅ Answer:</b><br>' + answer + '</div>', unsafe_allow_html=True)
                 except Exception as e:
                     st.error(f"API Error: {e}")
