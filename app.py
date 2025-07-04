@@ -8,14 +8,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- Config ---
-st.set_page_config(page_title="🧠 AI-Powered Document Q&A Blog", layout="wide")
+st.set_page_config(page_title="AI-Powered File Q&A Blog", layout="wide")
 
 # --- Constants ---
 API_KEY = st.secrets["api_key"]
 MODEL = "openai/gpt-4o-mini"
 
 # --- UI: Blog Intro ---
-st.title("🧠 Build Your Own AI-Powered Document Analyst")
+st.title(" Build Your Own AI-Powered Document Analyst")
 st.markdown("""
 Welcome to the **AI-Powered Document Q&A** interactive blog!  
 In this hands-on walkthrough, you’ll learn how to:
@@ -103,9 +103,8 @@ if uploaded_file:
         text_chunks = extract_text_from_file(uploaded_file)
 
     if text_chunks:
-        st.header("🧠 Step 2: Indexing with TF-IDF")
-        st.markdown("""
-TF-IDF stands for **Term Frequency - Inverse Document Frequency**.  
+        st.header("🧠 Step 2: Indexing ")
+        st.markdown("""  
 It helps identify important terms by comparing word frequency across text chunks.
 
 Creating a vector representation of your document...
