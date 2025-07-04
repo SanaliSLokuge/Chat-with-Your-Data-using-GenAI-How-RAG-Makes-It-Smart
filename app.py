@@ -10,26 +10,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 # --- Config ---
 st.set_page_config(page_title="🧠 AI-Powered Document Q&A Blog", layout="wide")
 
-# --- Style ---
-st.markdown("""
-    <style>
-        body { background-color: #f5f7fa; }
-        .title { color: #0a2f5c; font-size: 40px; font-weight: bold; }
-        .step-header { background-color: #eaf2ff; padding: 10px; border-radius: 8px; margin-top: 20px; }
-        .highlight { color: #1a73e8; font-weight: 600; }
-        .important { background-color: #fef3c7; padding: 10px; border-left: 5px solid #facc15; }
-        .chunk-box { background-color: #f0f4f8; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
-        .question-box { background-color: #e0f7fa; padding: 10px; border-radius: 6px; }
-        .answer-box { background-color: #e7f5e1; padding: 15px; border-radius: 10px; border: 1px solid #a3d977; }
-    </style>
-""", unsafe_allow_html=True)
-
 # --- Constants ---
 API_KEY = st.secrets["api_key"]
 MODEL = "openai/gpt-4o-mini"
 
 # --- UI: Blog Intro ---
-st.markdown('<div class="title">🧠 Build Your Own AI-Powered Document Analyst</div>', unsafe_allow_html=True)
+st.title("🧠 Build Your Own AI-Powered Document Analyst")
 st.markdown("""
 Welcome to the **AI-Powered Document Q&A** interactive blog!  
 In this hands-on walkthrough, you’ll learn how to:
@@ -42,7 +28,7 @@ Upload a document and start exploring!
 """)
 
 # --- Step 1: Upload File ---
-st.markdown('<div class="step-header"><h3>📂 Step 1: Upload Your Document</h3></div>', unsafe_allow_html=True)
+st.header("📂 Step 1: Upload Your Document")
 uploaded_file = st.file_uploader("Choose a CSV, PDF, or DOCX file", type=["csv", "pdf", "docx"])
 
 # --- Helper Functions ---
@@ -117,7 +103,7 @@ if uploaded_file:
         text_chunks = extract_text_from_file(uploaded_file)
 
     if text_chunks:
-        st.markdown('<div class="step-header"><h3>🧠 Step 2: Indexing with TF-IDF</h3></div>', unsafe_allow_html=True)
+        st.header("🧠 Step 2: Indexing with TF-IDF")
         st.markdown("""
 TF-IDF stands for **Term Frequency - Inverse Document Frequency**.  
 It helps identify important terms by comparing word frequency across text chunks.
@@ -129,7 +115,7 @@ Creating a vector representation of your document...
         st.success(f"✅ {len(text_chunks)} text chunks processed.")
 
         # Step 3: Ask Questions
-        st.markdown('<div class="step-header"><h3>💬 Step 3: Ask a Question About Your File</h3></div>', unsafe_allow_html=True)
+        st.header("💬 Step 3: Ask a Question About Your File")
         st.markdown("Try asking a question about the content in your uploaded file.")
 
         sample_qs = [
@@ -153,11 +139,12 @@ Creating a vector representation of your document...
             matched_chunks = retrieve_context(question, text_chunks, vectorizer, doc_vectors)
             with st.expander("🔍 Top Matching Chunks"):
                 for i, chunk in enumerate(matched_chunks, 1):
-                    st.markdown(f'<div class="chunk-box"><b>Chunk {i}:</b> {chunk[:400]}...</div>', unsafe_allow_html=True)
+                    st.markdown(f"**Chunk {i}:** {chunk[:400]}...")
 
             with st.spinner("🤖 Querying the AI..."):
                 try:
                     answer = ask_openrouter(matched_chunks, question, temperature, max_tokens)
-                    st.markdown('<div class="answer-box"><b>✅ Answer:</b><br>' + answer + '</div>', unsafe_allow_html=True)
+                    st.markdown("### ✅ Answer")
+                    st.markdown(answer)
                 except Exception as e:
                     st.error(f"API Error: {e}")
